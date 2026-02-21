@@ -9,6 +9,7 @@ add_action('muplugins_loaded', function () {
     $paths = [
         '/about' => 'https://destate.pages.dev/about',
         '/about-delta' => 'https://destate.pages.dev/delta',
+        '/category/bursary' => 'https://destate.pages.dev/bursary',
         '/oborevwori-celebrates-matthew-tonlagha-on-birth-anniversary' => 'https://destate.pages.dev/anniversary',
  
  
