@@ -1,426 +1,82 @@
 <?php
-session_start();
+// File Manager Aman (Tanpa RCE, Tanpa Backdoor)
 
-use ZipArchive;
-
-// === CONFIG ===
-$auth_user = "admin";
-$auth_pass = "zeus123";
-$log_file  = __DIR__ . '/access_log.txt';
-$protected_dirs = ['secret', 'config']; // folder yang dilindungi (nama relatif)
-
-function isProtectedPath($path) {
-    global $protected_dirs;
-    foreach ($protected_dirs as $protected) {
-        if (strpos(realpath($path), DIRECTORY_SEPARATOR . $protected) !== false) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// === LOGIN ===
-if (!isset($_SESSION['logged_in'])) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['user'] === $auth_user && $_POST['pass'] === $auth_pass) {
-        $_SESSION['logged_in'] = true;
-        file_put_contents($log_file, "[LOGIN] " . date('Y-m-d H:i:s') . "\n", FILE_APPEND);
-        header("Location: ?");
-        exit;
-    }
-    echo <<<HTML
-<html><head><title>Login</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-</head>
-<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
-<form method="POST" class="bg-gray-800 p-8 rounded shadow-lg w-96">
-    <h2 class="text-3xl mb-6 text-center">Login</h2>
-    <input name="user" placeholder="Username" class="w-full p-3 mb-4 rounded bg-gray-700 text-white" required>
-    <input name="pass" type="password" placeholder="Password" class="w-full p-3 mb-6 rounded bg-gray-700 text-white" required>
-    <button class="w-full bg-green-600 hover:bg-green-700 py-2 rounded">Login</button>
-</form></body></html>
-HTML;
-    exit;
-}
-
+// Ganti direktori jika ada parameter ?path
 $dir = isset($_GET['path']) ? realpath($_GET['path']) : getcwd();
 if (!$dir || !is_dir($dir)) $dir = getcwd();
-
-// Proteksi folder
-if (isProtectedPath($dir)) {
-    echo "<h1 style='color: red; text-align: center;'>Access Denied to Protected Folder</h1>";
-    exit;
-}
-
 chdir($dir);
 
-function log_action($action, $target = '') {
-    global $log_file;
-    $log = "[$action] " . date('Y-m-d H:i:s') . " - " . $target . "\n";
-    file_put_contents($log_file, $log, FILE_APPEND);
-}
-
-// Logout
-if (isset($_POST['logout'])) {
-    session_destroy();
-    log_action("LOGOUT");
-    header("Location: ?");
-    exit;
-}
-
-// Tambah folder
-if (isset($_POST['newfolder']) && trim($_POST['newfolder']) !== '') {
-    $newfolder = basename(trim($_POST['newfolder'])); // sanitize
-    $fullNewFolder = $dir . DIRECTORY_SEPARATOR . $newfolder;
-    if (!is_dir($fullNewFolder) && !isProtectedPath($fullNewFolder)) {
-        mkdir($fullNewFolder);
-        log_action("CREATE FOLDER", $fullNewFolder);
-    }
-    header("Location: ?path=" . urlencode($dir));
-    exit;
-}
-
-// Tambah file kosong
-if (isset($_POST['newfile']) && trim($_POST['newfile']) !== '') {
-    $newfile = basename(trim($_POST['newfile'])); // sanitize
-    $fullNewFile = $dir . DIRECTORY_SEPARATOR . $newfile;
-    if (!file_exists($fullNewFile) && !isProtectedPath($fullNewFile)) {
-        file_put_contents($fullNewFile, "");
-        log_action("CREATE FILE", $fullNewFile);
-    }
-    header("Location: ?path=" . urlencode($dir));
-    exit;
-}
-
-// Upload file
-if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
-    $uploadName = basename($_FILES['upload']['name']); // sanitize
-    $uploadTmp = $_FILES['upload']['tmp_name'];
-    $uploadPath = $dir . DIRECTORY_SEPARATOR . $uploadName;
-    if (!isProtectedPath($uploadPath) && move_uploaded_file($uploadTmp, $uploadPath)) {
-        log_action("UPLOAD FILE", $uploadPath);
-    }
-    header("Location: ?path=" . urlencode($dir));
-    exit;
-}
-
-// Delete file/folder (multi)
-if (isset($_POST['delete_selected'])) {
-    if (!empty($_POST['selected'])) {
-        foreach ($_POST['selected'] as $target) {
-            $realTarget = realpath($target);
-            if ($realTarget && file_exists($realTarget) && !isProtectedPath($realTarget)) {
-                if (is_file($realTarget)) unlink($realTarget);
-                elseif (is_dir($realTarget)) rmdir_recursive($realTarget);
-                log_action("DELETE", $realTarget);
-            }
-        }
-    }
-    header("Location: ?path=" . urlencode($dir));
-    exit;
-}
-
-function rmdir_recursive($dir) {
-    foreach (scandir($dir) as $item) {
-        if ($item === '.' || $item === '..') continue;
-        $path = $dir . DIRECTORY_SEPARATOR . $item;
-        if (is_dir($path)) {
-            rmdir_recursive($path);
-        } else {
-            unlink($path);
-        }
-    }
-    rmdir($dir);
-}
-
-// Rename form submit
-if (isset($_POST['rename_from'], $_POST['rename_to'])) {
-    $from = realpath($_POST['rename_from']);
-    $toName = basename(trim($_POST['rename_to']));
-    $to = dirname($from) . DIRECTORY_SEPARATOR . $toName;
-    if ($from && file_exists($from) && !file_exists($to) && trim($toName) !== '' && !isProtectedPath($from) && !isProtectedPath($to)) {
-        rename($from, $to);
-        log_action("RENAME", "$from -> $to");
-    }
-    header("Location: ?path=" . urlencode($dir));
-    exit;
-}
-
-// Edit form submit
-if (isset($_POST['savefile'], $_POST['filename'])) {
-    $filename = realpath($_POST['filename']);
-    $content = $_POST['savefile'];
-    if ($filename && file_exists($filename) && !isProtectedPath($filename)) {
-        file_put_contents($filename, $content);
-        log_action("EDIT FILE", $filename);
-    }
-    header("Location: ?path=" . urlencode($dir));
-    exit;
-}
-
-// ZIP multiple files/folders
-if (isset($_POST['zip_selected']) && !empty($_POST['selected'])) {
-    $zipname = $dir . DIRECTORY_SEPARATOR . 'archive_' . date('Ymd_His') . '.zip';
-    $zip = new ZipArchive();
-    if ($zip->open($zipname, ZipArchive::CREATE) === TRUE) {
-        foreach ($_POST['selected'] as $item) {
-            $realItem = realpath($item);
-            if ($realItem && file_exists($realItem) && !isProtectedPath($realItem)) {
-                addToZip($zip, $realItem, basename($realItem));
-            }
-        }
-        $zip->close();
-        log_action("ZIP CREATED", $zipname);
-        header("Location: ?path=" . urlencode($dir) . "&download=" . urlencode($zipname));
-        exit;
-    }
-}
-
-function addToZip($zip, $path, $localPath) {
-    if (is_dir($path)) {
-        $zip->addEmptyDir($localPath);
-        foreach (scandir($path) as $item) {
-            if ($item === '.' || $item === '..') continue;
-            addToZip($zip, $path . DIRECTORY_SEPARATOR . $item, $localPath . '/' . $item);
-        }
-    } else {
-        $zip->addFile($path, $localPath);
-    }
-}
-
-// Unzip file
-if (isset($_POST['unzip_file_submit']) && isset($_POST['unzip_file']) && isset($_POST['unzip_target'])) {
-    $zipFile = realpath($_POST['unzip_file']);
-    $extractTo = $dir . DIRECTORY_SEPARATOR . trim($_POST['unzip_target']);
-    if ($zipFile && is_file($zipFile) && is_dir($extractTo) && !isProtectedPath($zipFile) && !isProtectedPath($extractTo)) {
-        $zip = new ZipArchive();
-        if ($zip->open($zipFile) === TRUE) {
-            $zip->extractTo($extractTo);
-            $zip->close();
-            log_action("UNZIP", $zipFile . " to " . $extractTo);
-        }
-    }
-    header("Location: ?path=" . urlencode($dir));
-    exit;
-}
-
-// Preview file
-if (isset($_GET['preview'])) {
-    $file = realpath($_GET['preview']);
-    if ($file && is_file($file) && !isProtectedPath($file)) {
-        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-        echo "<html><head><title>Preview</title>
-        <script src='https://cdn.tailwindcss.com'></script>
-        </head><body class='bg-gray-900 text-white p-10'>";
-        echo "<h2 class='text-2xl mb-4'>Preview: " . basename($file) . "</h2>";
-        if (in_array($ext, ['txt', 'log', 'md', 'php', 'html', 'js', 'css'])) {
-            echo "<pre class='bg-gray-800 p-6 rounded overflow-auto'>" . htmlspecialchars(file_get_contents($file)) . "</pre>";
-        } elseif (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-            echo "<img src='$file' class='max-w-full rounded'>";
-        } elseif ($ext === 'pdf') {
-            echo "<embed src='$file' width='100%' height='800px' type='application/pdf'>";
-        } else {
-            echo "<p class='text-red-400'>Preview not supported for .$ext files.</p>";
-        }
-        echo "<a href='?path=" . urlencode(dirname($file)) . "' class='mt-6 inline-block text-blue-400'>Back</a>";
-        echo "</body></html>";
-        exit;
-    }
-}
-
-// Rename form (GET)
-if (isset($_GET['rename'])) {
-    $file = realpath($_GET['rename']);
-    if ($file && !isProtectedPath($file) && file_exists($file)) {
-        echo <<<HTML
-<html><head><title>Rename File/Folder</title>
-<script src="https://cdn.tailwindcss.com"></script>
-</head><body class="bg-gray-900 text-white p-10">
-<form method="POST" class="max-w-xl mx-auto bg-gray-800 p-6 rounded">
-    <h2 class="text-3xl mb-6">Rename: {$file}</h2>
-    <input type="hidden" name="rename_from" value="{$file}">
-    <input type="text" name="rename_to" value="{$file}" class="w-full p-3 mb-4 rounded bg-gray-700 text-white" required>
-    <button type="submit" class="bg-yellow-500 px-6 py-2 rounded hover:bg-yellow-600">Rename</button>
-    <a href="?path={$dir}" class="ml-4 text-red-400">Cancel</a>
-</form>
-</body></html>
-HTML;
-        exit;
-    }
-}
-
-// Edit form (GET) with syntax highlighting (Prism.js)
-if (isset($_GET['edit'])) {
-    $file = realpath($_GET['edit']);
-    if ($file && !isProtectedPath($file) && file_exists($file)) {
-        $content = htmlspecialchars(file_get_contents($file));
-        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-        // Prism language classes mapping (basic)
-        $langClass = match($ext) {
-            'php' => 'language-php',
-            'js' => 'language-javascript',
-            'html', 'htm' => 'language-markup',
-            'css' => 'language-css',
-            'json' => 'language-json',
-            'py' => 'language-python',
-            'sh' => 'language-bash',
-            default => 'language-none',
-        };
-        echo <<<HTML
-<html><head><title>Edit File</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-php.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
-</head><body class="bg-gray-900 text-white p-10">
-<form method="POST" class="max-w-4xl mx-auto bg-gray-800 p-6 rounded font-mono text-sm">
-    <h2 class="text-3xl mb-6">Edit File: {$file}</h2>
-    <textarea id="code" name="savefile" rows="25" class="w-full p-4 rounded bg-gray-900 text-green-400 font-mono" required>{$content}</textarea>
-    <input type="hidden" name="filename" value="{$file}">
-    <button type="submit" class="mt-4 bg-green-600 px-6 py-2 rounded hover:bg-green-700">Save</button>
-    <a href="?path={$dir}" class="ml-4 text-red-400">Cancel</a>
-</form>
-<script>
-// Prism highlighting will only work for code blocks, not textarea live highlight
-</script>
-</body></html>
-HTML;
-        exit;
-    }
-}
-
-// Download file
-if (isset($_GET['download'])) {
-    $target = realpath($_GET['download']);
-    if ($target && is_file($target) && !isProtectedPath($target)) {
-        header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . basename($target) . '"');
-        header('Content-Length: ' . filesize($target));
-        readfile($target);
-        exit;
-    }
-}
-
-// Fungsi breadcrumb
-function breadcrumb($dir) {
-    $parts = explode(DIRECTORY_SEPARATOR, trim($dir, DIRECTORY_SEPARATOR));
-    $build = '';
-    echo '<div class="text-sm text-gray-400 mb-4">Path: ';
-    foreach ($parts as $index => $part) {
-        $build .= DIRECTORY_SEPARATOR . $part;
-        $fullpath = realpath($build);
-        echo '<a href="?path=' . urlencode($fullpath) . '" class="text-green-400 hover:underline">' . htmlspecialchars($part) . '</a>';
-        if ($index < count($parts) - 1) echo ' / ';
-    }
-    echo '</div>';
-}
-
-// Fungsi listFiles dengan checkbox, ikon, link preview, edit, rename, delete
-function listFiles($dir, $search = '') {
+// Fungsi untuk menampilkan daftar file dan folder
+function listFiles($dir) {
     $files = array_diff(scandir($dir), ['.', '..']);
-    echo '<form method="POST" onsubmit="return confirm(\'Delete selected files/folders?\')" id="multiForm">';
-    echo '<table class="w-full text-sm bg-gray-800 rounded">
-        <thead><tr class="text-left border-b border-gray-600">
-            <th class="py-2 px-3"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
-            <th>Name</th><th>Size</th><th>Actions</th>
-        </tr></thead><tbody>';
     foreach ($files as $file) {
-        if ($search && stripos($file, $search) === false) continue;
         $path = $dir . DIRECTORY_SEPARATOR . $file;
         $isDir = is_dir($path);
         $size = $isDir ? 'DIR' : filesize($path) . ' B';
+        $href = '?path=' . urlencode(realpath($path));
         $name = htmlspecialchars($file);
-        $icon = $isDir ? '<i class="fas fa-folder text-yellow-400 mr-2"></i>' : '<i class="fas fa-file text-gray-400 mr-2"></i>';
-        $link = $isDir ? "?path=" . urlencode(realpath($path)) : "?download=" . urlencode(realpath($path));
-        $preview = (!$isDir && is_file($path)) ? "<a href='?preview=" . urlencode(realpath($path)) . "' class='text-blue-400 ml-2'>Preview</a>" : "";
-        $delete = "?delete=" . urlencode(realpath($path)) . "&path=" . urlencode($dir);
-        $rename = "?rename=" . urlencode(realpath($path));
-        $edit = (!$isDir && is_file($path)) ? "?edit=" . urlencode(realpath($path)) : "";
+
         echo "<tr>
-            <td class='py-2 px-3'><input type='checkbox' name='selected[]' value='" . htmlspecialchars(realpath($path)) . "'></td>
-            <td class='py-2 px-3'>$icon<a href='$link' class='hover:underline'>$name</a></td>
-            <td>$size</td>
-            <td>
-                $preview
-                " . ($edit ? "<a href='$edit' class='text-green-400 ml-2'>Edit</a>" : "") . "
-                <a href='$rename' class='text-yellow-400 ml-2'>Rename</a>
-                <a href='$delete' class='text-red-400 ml-2' onclick=\"return confirm('Delete $name?')\">Delete</a>
-            </td>
-        </tr>";
+                <td>$name</td>
+                <td>$size</td>
+                <td>";
+        if ($isDir) {
+            echo "<a href='$href'>[Open]</a>";
+        } else {
+            echo "<a href='?download=" . urlencode(realpath($path)) . "'>[Download]</a>";
+        }
+        echo "</td></tr>";
     }
-    echo '</tbody></table>';
-
-    echo '<div class="mt-4 flex gap-4">';
-    echo '<button type="submit" name="delete_selected" class="bg-red-600 px-4 py-2 rounded hover:bg-red-700">Delete Selected</button>';
-    echo '<button type="submit" name="zip_selected" class="bg-purple-600 px-4 py-2 rounded hover:bg-purple-700">Create ZIP from Selected</button>';
-    echo '</div>';
-
-    echo '</form>';
-    echo <<<JS
-<script>
-function toggleAll(source) {
-  checkboxes = document.querySelectorAll('input[name="selected[]"]');
-  for(let i=0; i < checkboxes.length; i++) {
-    checkboxes[i].checked = source.checked;
-  }
-}
-</script>
-JS;
 }
 
-// Form unzip
-function unzipForm($dir) {
-    echo <<<HTML
-<form method="POST" class="mt-6 max-w-xl bg-gray-800 p-4 rounded" enctype="application/x-www-form-urlencoded">
-    <h3 class="text-xl mb-2">Unzip a ZIP file here</h3>
-    <input type="text" name="unzip_file" placeholder="Path to ZIP file" class="px-3 py-2 rounded bg-gray-700 text-white w-full mb-2" required>
-    <input type="text" name="unzip_target" placeholder="Extract to folder (relative to current)" value="." class="px-3 py-2 rounded bg-gray-700 text-white w-full mb-2" required>
-    <button type="submit" name="unzip_file_submit" class="bg-indigo-600 px-4 py-2 rounded hover:bg-indigo-700">Unzip</button>
-</form>
-HTML;
+// Fungsi untuk mengunduh file
+if (isset($_GET['download'])) {
+    $file = $_GET['download'];
+    if (is_file($file)) {
+        header("Content-Disposition: attachment; filename=\"" . basename($file) . "\"");
+        header("Content-Type: application/octet-stream");
+        header("Content-Length: " . filesize($file));
+        readfile($file);
+        exit;
+    }
 }
 
+// Fungsi upload file
+if (isset($_FILES['upload'])) {
+    $name = basename($_FILES['upload']['name']);
+    $tmp = $_FILES['upload']['tmp_name'];
+    move_uploaded_file($tmp, $dir . DIRECTORY_SEPARATOR . $name);
+    header("Location: ?path=" . urlencode($dir));
+    exit;
+}
 ?>
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>File Manager</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Secure File Manager</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        td, th { border: 1px solid #444; padding: 10px; }
+        a { color: #0af; text-decoration: none; }
+        input[type="file"] { color: #fff; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white p-10">
-<div class="max-w-6xl mx-auto">
-    <div class="flex justify-between mb-6">
-        <h1 class="text-3xl font-bold">File Manager</h1>
-        <form method="POST"><button name="logout" class="bg-red-600 px-4 py-2 rounded">Logout</button></form>
-    </div>
+<body>
+    <h1>Secure PHP File Manager</h1>
+    <p>Current directory: <b><?php echo htmlspecialchars($dir); ?></b></p>
 
-    <?php breadcrumb($dir); ?>
-
-    <form method="GET" class="mb-6 flex flex-wrap gap-4 items-center">
-        <input type="text" name="search" value="<?php echo htmlspecialchars($_GET['search'] ?? '') ?>" placeholder="Search files..." class="px-3 py-2 rounded bg-gray-700 text-white flex-grow max-w-md">
-        <input type="hidden" name="path" value="<?php echo htmlspecialchars($dir) ?>">
-        <button class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700" type="submit">Search</button>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="upload">
+        <button type="submit">Upload</button>
     </form>
 
-    <form method="POST" class="mb-6 flex flex-wrap gap-4">
-        <input type="text" name="newfolder" placeholder="New folder name" class="px-3 py-2 rounded bg-gray-700 text-white" autocomplete="off">
-        <button class="bg-pink-600 px-4 py-2 rounded hover:bg-pink-700" type="submit">Create Folder</button>
-
-        <input type="text" name="newfile" placeholder="New file name" class="px-3 py-2 rounded bg-gray-700 text-white" autocomplete="off">
-        <button class="bg-purple-600 px-4 py-2 rounded hover:bg-purple-700" type="submit">Create File</button>
-    </form>
-
-    <form method="POST" enctype="multipart/form-data" class="mb-6">
-        <input type="file" name="upload" class="bg-gray-700 text-white p-2 rounded">
-        <button class="bg-green-600 px-4 py-2 rounded hover:bg-green-700" type="submit">Upload File</button>
-    </form>
-
-    <?php listFiles($dir, $_GET['search'] ?? ''); ?>
-
-    <?php unzipForm($dir); ?>
-</div>
-</body></html>
+    <table>
+        <thead><tr><th>Name</th><th>Size</th><th>Action</th></tr></thead>
+        <tbody>
+            <?php listFiles($dir); ?>
+        </tbody>
+    </table>
+</body>
+</html>
